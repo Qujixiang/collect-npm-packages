@@ -1,4 +1,4 @@
-# collect-pypi-packages
+# collect-NPM-packages
 > Automatically collect new published packages every day from PyPI registry.
 
 ## Install
