@@ -8,8 +8,7 @@ fi
 destination_path=$1
 requirements_file_path=$2
 
-source env/bin/activate
 while IFS= read -r line; do
-    pip download $line --no-deps --no-binary :all: --dest $destination_path
+    npm install $line --prefix $destination_path 
+    npm pack $line --pack-destination $destination_path 
 done < $requirements_file_path
-deactivate

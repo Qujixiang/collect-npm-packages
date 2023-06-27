@@ -1,5 +1,5 @@
 # collect-NPM-packages
-> Automatically collect new published packages every day from PyPI registry.
+> Automatically collect new published packages every day from NPM registry.
 
 ## Install
 Create a virtual environment and activate it, then install the third library.
