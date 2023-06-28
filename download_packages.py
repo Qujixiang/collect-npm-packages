@@ -96,7 +96,7 @@ def get_one_page_package_info(page_num: int, retry_times: int = 3, retry_interva
             'platforms': 'NPM',
             'sort': 'latest_release_published_at',
             'languages': 'JavaScript',
-            'per_page': 10,
+            'per_page': 100,
             'page': page_num,
             'api_key': 'a711409c801d5337ce4758cf94153601'
         })
