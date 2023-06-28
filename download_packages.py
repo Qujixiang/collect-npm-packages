@@ -10,7 +10,7 @@ import requests
 from utils import get_logger, split_file, get_requirements_path, get_common_log_path, get_pip_download_log_path, get_packages_path, get_package_info_path
 
 
-yesterday = date.today() - timedelta(days=1)
+yesterday = date.today() - timedelta(days=0)
 common_logger = get_logger('common_logger', get_common_log_path(yesterday))
 npm_download_logger = get_logger(
     'npm_download_logger', get_pip_download_log_path(yesterday))
@@ -27,7 +27,7 @@ def get_package_info(day: date) -> list or None:
         package_info_path = get_package_info_path(day)
         page_num = 1
 
-        i=2
+        i=1
         while i>0:
             i-=1
         #while last_package_published_day >= day:
@@ -77,6 +77,7 @@ def get_package_info(day: date) -> list or None:
         common_logger.info(
             f'Get {len(package_metadatas)} packages information.')
         return package_metadatas
+    
     except Exception as e:
         common_logger.error(e)
         return None
@@ -95,7 +96,7 @@ def get_one_page_package_info(page_num: int, retry_times: int = 3, retry_interva
             'platforms': 'NPM',
             'sort': 'latest_release_published_at',
             'languages': 'JavaScript',
-            # 'per_page': 100,
+            'per_page': 10,
             'page': page_num,
             'api_key': 'a711409c801d5337ce4758cf94153601'
         })
@@ -136,20 +137,20 @@ def download_packages(day: date, piece_number: int = 0) -> None:
         requirements_file_path += str(piece_number)
         npm_download_logger.info(
             f'Download packages from {requirements_file_path} started.')
-    cmd = f'.\download.sh {destination_path} {requirements_file_path}'
-
-    npm_download_logger.info(cmd)
+    cmd_install = f'./npm_download.sh {destination_path} {requirements_file_path}'
+    npm_download_logger.info(cmd_install)
     p = subprocess.Popen(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd_install, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = p.communicate()
 
     npm_download_logger.info(output.decode())
     npm_download_logger.error(error.decode())
 
 
+
 if __name__ == '__main__':
     today = date.today()
-    yesterday = today - timedelta(days=1)
+    #yesterday = today - timedelta(days=1)
 
     # Get packages information
     package_info = get_package_info(yesterday)
@@ -159,7 +160,7 @@ if __name__ == '__main__':
     export_package_info(package_info, yesterday)
 
     # Download packages
-    piece_number = 8
+    piece_number = 5
     common_logger.info(
         f'Split requirements.txt file into {piece_number} pieces.')
     split_file(get_requirements_path(yesterday), piece_number)
