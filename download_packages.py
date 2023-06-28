@@ -10,10 +10,10 @@ import requests
 from utils import get_logger, split_file, get_requirements_path, get_common_log_path, get_pip_download_log_path, get_packages_path, get_package_info_path
 
 
-yesterday = date.today() - timedelta(days=0)
-common_logger = get_logger('common_logger', get_common_log_path(yesterday))
+goal_day = date.today() - timedelta(days=0)
+common_logger = get_logger('common_logger', get_common_log_path(goal_day))
 npm_download_logger = get_logger(
-    'npm_download_logger', get_pip_download_log_path(yesterday))
+    'npm_download_logger', get_pip_download_log_path(goal_day))
 
 
 def get_package_info(day: date) -> list or None:
@@ -27,10 +27,10 @@ def get_package_info(day: date) -> list or None:
         package_info_path = get_package_info_path(day)
         page_num = 1
 
-        i=1
-        while i>0:
-            i-=1
-        #while last_package_published_day >= day:
+        #i=1
+        #while i>0:
+            #i-=1
+        while last_package_published_day >= day:
             common_logger.info(
                 f'Get package information from page {page_num} started.')
             data = get_one_page_package_info(page_num)
@@ -150,25 +150,25 @@ def download_packages(day: date, piece_number: int = 0) -> None:
 
 if __name__ == '__main__':
     today = date.today()
-    #yesterday = today - timedelta(days=1)
+    #goal_day = today - timedelta(days=1)
 
     # Get packages information
-    package_info = get_package_info(yesterday)
+    package_info = get_package_info(goal_day)
     if not package_info:
         common_logger.error(f'Get package information failed.')
         exit(-1)
-    export_package_info(package_info, yesterday)
+    export_package_info(package_info, goal_day)
 
     # Download packages
     piece_number = 5
     common_logger.info(
         f'Split requirements.txt file into {piece_number} pieces.')
-    split_file(get_requirements_path(yesterday), piece_number)
+    split_file(get_requirements_path(goal_day), piece_number)
 
     with ThreadPoolExecutor(max_workers=piece_number) as executor:
         common_logger.info(f'Download packages started.')
         all_tasks = [executor.submit(
-            download_packages, yesterday, i + 1) for i in range(piece_number)]
+            download_packages, goal_day, i + 1) for i in range(piece_number)]
         for future in as_completed(all_tasks):
             future.result()
         common_logger.info(f'Download packages finished.')
