@@ -50,3 +50,9 @@ if __name__ == '__main__':
         for future in as_completed(all_tasks):
             future.result()
         common_logger.info(f'Download packages finished.')
+
+        # pre = subprocess.Popen(
+        #     './pre_process.sh', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # output, error = pre.communicate()
+        # npm_download_logger.info(output.decode())
+        # npm_download_logger.error(error.decode())
