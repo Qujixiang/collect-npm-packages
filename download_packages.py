@@ -141,25 +141,27 @@ def download_packages(day: date, piece_number: int = 0) -> None:
     p = subprocess.Popen(
         cmd_install, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = p.communicate()
+    npm_download_logger.info(output.decode())
+    npm_download_logger.error(error.decode())
 
+def unzip_tgz(day:date)-> None:
+    """
+    Decompress the tgz archive in the specified format for predict
+    :param day: The day to download packages.
+    """
+    destination_path = get_packages_path(day)
+    cmd_pre_process= f'./pre_process.sh {destination_path}'
+    npm_download_logger.info(cmd_pre_process)
+    pre = subprocess.Popen(
+       cmd_pre_process, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, error = pre.communicate()
     npm_download_logger.info(output.decode())
     npm_download_logger.error(error.decode())
 
 
-
 if __name__ == '__main__':
-    today = date.today()
-    #goal_day = today - timedelta(days=1)
-
-    # Get packages information
-    package_info = get_package_info(goal_day)
-    if not package_info:
-        common_logger.error(f'Get package information failed.')
-        exit(-1)
-    export_package_info(package_info, goal_day)
-
-    # Download packages
-    piece_number = 5
+    #Download packages
+    piece_number = 8
     common_logger.info(
         f'Split requirements.txt file into {piece_number} pieces.')
     split_file(get_requirements_path(goal_day), piece_number)
@@ -170,4 +172,6 @@ if __name__ == '__main__':
             download_packages, goal_day, i + 1) for i in range(piece_number)]
         for future in as_completed(all_tasks):
             future.result()
-        common_logger.info(f'Download packages finished.')
+        
+    unzip_tgz(goal_day)
+    common_logger.info(f'Download packages finished.')

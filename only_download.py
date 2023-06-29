@@ -8,7 +8,7 @@ import requests
 from utils import get_logger, split_file, get_requirements_path, get_common_log_path, get_pip_download_log_path, get_packages_path, get_package_info_path
 
 
-goal_day = date.today() - timedelta(days=1)
+goal_day = date.today() - timedelta(days=2)
 common_logger = get_logger('common_logger', get_common_log_path(goal_day))
 npm_download_logger = get_logger(
     'npm_download_logger', get_pip_download_log_path(goal_day))
@@ -31,13 +31,26 @@ def download_packages(day: date, piece_number: int = 0) -> None:
     p = subprocess.Popen(
         cmd_install, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = p.communicate()
+    npm_download_logger.info(output.decode())
+    npm_download_logger.error(error.decode())
 
+def unzip_tgz(day:date)-> None:
+    """
+    Decompress the tgz archive in the specified format for predict
+    :param day: The day to download packages.
+    """
+    destination_path = get_packages_path(day)
+    cmd_pre_process= f'./pre_process.sh {destination_path}'
+    npm_download_logger.info(cmd_pre_process)
+    pre = subprocess.Popen(
+       cmd_pre_process, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, error = pre.communicate()
     npm_download_logger.info(output.decode())
     npm_download_logger.error(error.decode())
 
 
 if __name__ == '__main__':
-    # Download packages
+    #Download packages
     piece_number = 8
     common_logger.info(
         f'Split requirements.txt file into {piece_number} pieces.')
@@ -49,10 +62,6 @@ if __name__ == '__main__':
             download_packages, goal_day, i + 1) for i in range(piece_number)]
         for future in as_completed(all_tasks):
             future.result()
-        common_logger.info(f'Download packages finished.')
-
-        # pre = subprocess.Popen(
-        #     './pre_process.sh', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # output, error = pre.communicate()
-        # npm_download_logger.info(output.decode())
-        # npm_download_logger.error(error.decode())
+        
+    unzip_tgz(goal_day)
+    common_logger.info(f'Download packages finished.')

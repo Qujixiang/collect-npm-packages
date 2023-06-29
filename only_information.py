@@ -10,7 +10,7 @@ import requests
 from utils import get_logger, split_file, get_requirements_path, get_common_log_path, get_pip_download_log_path, get_packages_path, get_package_info_path
 
 
-goal_day = date.today() - timedelta(days=1)
+goal_day = date.today() - timedelta(days=2)
 common_logger = get_logger('common_logger', get_common_log_path(goal_day))
 npm_download_logger = get_logger(
     'npm_download_logger', get_pip_download_log_path(goal_day))
@@ -98,7 +98,7 @@ def get_one_page_package_info(page_num: int, retry_times: int = 3, retry_interva
             'platforms': 'NPM',
             'sort': 'latest_release_published_at',
             'languages': 'JavaScript',
-            'per_page': 100,
+            'per_page': 10,
             'page': page_num,
             'api_key': 'a711409c801d5337ce4758cf94153601'
         })
