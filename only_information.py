@@ -10,7 +10,7 @@ import requests
 from utils import get_logger, split_file, get_requirements_path, get_common_log_path, get_pip_download_log_path, get_packages_path, get_package_info_path
 
 
-goal_day = date.today() - timedelta(days=3)
+goal_day = date.today() - timedelta(days=1)
 common_logger = get_logger('common_logger', get_common_log_path(goal_day))
 npm_download_logger = get_logger(
     'npm_download_logger', get_pip_download_log_path(goal_day))
@@ -27,7 +27,9 @@ def get_package_info(day: date) -> list or None:
         package_info_path = get_package_info_path(day)
         page_num = 1
 
-        while last_package_published_day >= day:
+        i=1
+        while last_package_published_day >= day and i>0:
+            i-=1
             common_logger.info(
                 f'Get package information from page {page_num} started.')
             data = get_one_page_package_info(page_num)
@@ -54,6 +56,7 @@ def get_package_info(day: date) -> list or None:
                 common_logger.info(
                 f'NOT the goal day.')
                 time.sleep(1)
+                
             elif last_package_published_day == day:
                 for package_metadata in data:
                     d = datetime.strptime(
@@ -76,7 +79,7 @@ def get_package_info(day: date) -> list or None:
         common_logger.info(
             f'Get {len(package_metadatas)} packages information.')
         return package_metadatas
-    
+
     except Exception as e:
         common_logger.error(e)
         return None
@@ -106,9 +109,6 @@ def get_one_page_package_info(page_num: int, retry_times: int = 3, retry_interva
             time.sleep(retry_interval)
         else:
             break
-    
-    # with open("notejson.txt", 'w', encoding='utf-8') as f_json:
-    #     f_json.write(response.text)
     return response.json()
 
 
@@ -124,50 +124,10 @@ def export_package_info(package_info: list, day: date) -> None:
                     package_metadata['name'], package_metadata['latest_release_number']))
 
 
-def download_packages(day: date, piece_number: int = 0) -> None:
-    """
-    Download packages from the `NPM`.
-    :param day: The day to download packages.
-    :param piece_number: The piece number of the `requirements.txt` file.
-    """
-    destination_path = get_packages_path(day)
-    requirements_file_path = get_requirements_path(day)
-    if piece_number > 0:
-        requirements_file_path += str(piece_number)
-        npm_download_logger.info(
-            f'Download packages from {requirements_file_path} started.')
-    cmd_install = f'./npm_download.sh {destination_path} {requirements_file_path}'
-    npm_download_logger.info(cmd_install)
-    p = subprocess.Popen(
-        cmd_install, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error = p.communicate()
-
-    npm_download_logger.info(output.decode())
-    npm_download_logger.error(error.decode())
-
-
-
 if __name__ == '__main__':
-    today = date.today()
-    #goal_day = today - timedelta(days=1)
-
     # Get packages information
     package_info = get_package_info(goal_day)
     if not package_info:
         common_logger.error(f'Get package information failed.')
         exit(-1)
     export_package_info(package_info, goal_day)
-
-    # Download packages
-    piece_number = 5
-    common_logger.info(
-        f'Split requirements.txt file into {piece_number} pieces.')
-    split_file(get_requirements_path(goal_day), piece_number)
-
-    with ThreadPoolExecutor(max_workers=piece_number) as executor:
-        common_logger.info(f'Download packages started.')
-        all_tasks = [executor.submit(
-            download_packages, goal_day, i + 1) for i in range(piece_number)]
-        for future in as_completed(all_tasks):
-            future.result()
-        common_logger.info(f'Download packages finished.')
