@@ -17,7 +17,7 @@ python download_packages.py
 ```
 
 ### only get messages for the specified number and days
-需要更改13行goal_day的值+30行i的h值
+需要更改13行goal_day的值+30行i的值
 ```bash
 python only_information.py
 ```
