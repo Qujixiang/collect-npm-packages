@@ -56,7 +56,7 @@ def get_common_log_path(day: date) -> str:
     os.makedirs(path, exist_ok=True)
     return f'{path}/common.log'
 
-def get_pip_download_log_path(day: date) -> str:
+def get_download_log_path(day: date) -> str:
     """
     Get the path of the pip download log file
     :param day: date
@@ -64,7 +64,7 @@ def get_pip_download_log_path(day: date) -> str:
     """
     path = f'logs/{day.year}-{day.month}-{day.day}'
     os.makedirs(path, exist_ok=True)
-    return f'{path}/pip_download.log'
+    return f'{path}/download.log'
 
 def get_packages_path(day: date) -> str:
     """

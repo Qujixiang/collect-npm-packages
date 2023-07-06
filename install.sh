@@ -11,6 +11,6 @@ done
 if [ ! -d "env" ]; then
   python3 -m venv env
   source env/bin/activate
-  install -r requirements.txt
+  pip install -r requirements.txt
   deactivate
 fi

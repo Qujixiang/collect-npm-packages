@@ -7,14 +7,13 @@ import subprocess
 
 import requests
 
-from utils import get_logger, split_file, get_requirements_path, get_common_log_path, get_pip_download_log_path, get_packages_path, get_package_info_path
+from utils import get_logger, split_file, get_requirements_path, get_common_log_path, get_download_log_path, get_packages_path, get_package_info_path
 
 
-goal_day = date.today() - timedelta(days=3)
+goal_day = date.today() - timedelta(days=1)
 common_logger = get_logger('common_logger', get_common_log_path(goal_day))
 npm_download_logger = get_logger(
-    'npm_download_logger', get_pip_download_log_path(goal_day))
-
+    'npm_download_logger', get_download_log_path(goal_day))
 
 def get_package_info(day: date) -> list or None:
     """
@@ -30,7 +29,7 @@ def get_package_info(day: date) -> list or None:
         while last_package_published_day >= day:
             common_logger.info(
                 f'Get package information from page {page_num} started.')
-            data = get_one_page_package_info(page_num)
+            data = get_one_page_package_info(page_num, retry_interval=60)
             if not data:
                 raise Exception(
                     f'Get package information from page {page_num} failed.')
@@ -82,7 +81,7 @@ def get_package_info(day: date) -> list or None:
         return None
 
 
-def get_one_page_package_info(page_num: int, retry_times: int = 3, retry_interval: int = 30) -> Any | None:
+def get_one_page_package_info(page_num: int, retry_times: int = 10, retry_interval: int = 60) -> Any | None:
     """
     Get one page package information from the `libraries.io`.
     :param page_num: The page number to get package information.
@@ -90,6 +89,7 @@ def get_one_page_package_info(page_num: int, retry_times: int = 3, retry_interva
     :param retry_interval: The retry interval when the request failed.
     :return: The package information. If the request failed, return `None`.
     """
+    total_retry_times = retry_times
     while retry_times > 0:
         response = requests.get('https://libraries.io/api/search', params={
             'platforms': 'NPM',
@@ -103,14 +103,10 @@ def get_one_page_package_info(page_num: int, retry_times: int = 3, retry_interva
             common_logger.error(
                 f'Request failed with: {response.status_code}')
             retry_times -= 1
-            time.sleep(retry_interval)
+            time.sleep(retry_interval * (total_retry_times - retry_times))
         else:
             break
-    
-    # with open("notejson.txt", 'w', encoding='utf-8') as f_json:
-    #     f_json.write(response.text)
     return response.json()
-
 
 def export_package_info(package_info: list, day: date) -> None:
     """
@@ -122,7 +118,6 @@ def export_package_info(package_info: list, day: date) -> None:
             if package_metadata['latest_release_number']:
                 f.write('{}@{}\n'.format(
                     package_metadata['name'], package_metadata['latest_release_number']))
-
 
 def download_packages(day: date, piece_number: int = 0) -> None:
     """
@@ -136,7 +131,7 @@ def download_packages(day: date, piece_number: int = 0) -> None:
         requirements_file_path += str(piece_number)
         npm_download_logger.info(
             f'Download packages from {requirements_file_path} started.')
-    cmd_install = f'./npm_download.sh {destination_path} {requirements_file_path}'
+    cmd_install = f'./download.sh {destination_path} {requirements_file_path}'
     npm_download_logger.info(cmd_install)
     p = subprocess.Popen(
         cmd_install, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -144,22 +139,14 @@ def download_packages(day: date, piece_number: int = 0) -> None:
     npm_download_logger.info(output.decode())
     npm_download_logger.error(error.decode())
 
-def unzip_tgz(day:date)-> None:
-    """
-    Decompress the tgz archive in the specified format for predict
-    :param day: The day to download packages.
-    """
-    destination_path = get_packages_path(day)
-    cmd_pre_process= f'./pre_process.sh {destination_path}'
-    npm_download_logger.info(cmd_pre_process)
-    pre = subprocess.Popen(
-       cmd_pre_process, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error = pre.communicate()
-    npm_download_logger.info(output.decode())
-    npm_download_logger.error(error.decode())
-
-
 if __name__ == '__main__':
+    # Get packages information
+    package_info = get_package_info(goal_day)
+    if not package_info:
+        common_logger.error(f'Get package information failed.')
+        exit(-1)
+    export_package_info(package_info, goal_day)
+
     #Download packages
     piece_number = 8
     common_logger.info(
@@ -172,6 +159,5 @@ if __name__ == '__main__':
             download_packages, goal_day, i + 1) for i in range(piece_number)]
         for future in as_completed(all_tasks):
             future.result()
-        
-    unzip_tgz(goal_day)
+
     common_logger.info(f'Download packages finished.')
