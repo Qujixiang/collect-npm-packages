@@ -3,7 +3,7 @@ __pycache__/
 .vscode/
 
 # project related
-data/
+data/package_info
 env/
 logs/
 packages/

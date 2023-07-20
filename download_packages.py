@@ -10,6 +10,28 @@ import requests
 from utils import get_logger, split_file, get_requirements_path, get_common_log_path, get_download_log_path, get_packages_path, get_package_info_path
 
 
+# Load api keys from `data/settings.json`.
+with open('data/settings.json', 'r') as f:
+    settings = json.load(f)
+    api_keys = settings['api_keys']
+api_keys_counter = 0
+api_keys_length = len(api_keys)
+api_key = api_keys[api_keys_counter]
+
+def get_next_api_key() -> str:
+    """
+    Get next api key from the `api_keys` list.
+    """
+    global api_keys_counter
+    global api_keys_length
+
+    api_keys_counter += 1
+    if api_keys_counter == api_keys_length:
+        api_keys_counter = 0
+    _api_key = api_keys[api_keys_counter]
+    common_logger.info(f'Use api key: {_api_key}')
+    return _api_key
+
 goal_day = date.today() - timedelta(days=1)
 common_logger = get_logger('common_logger', get_common_log_path(goal_day))
 npm_download_logger = get_logger(
@@ -52,7 +74,7 @@ def get_package_info(day: date) -> list or None:
                 page_num += 1
                 common_logger.info(
                 f'NOT the goal day.')
-                time.sleep(1)
+                time.sleep(60)
             elif last_package_published_day == day:
                 for package_metadata in data:
                     d = datetime.strptime(
@@ -89,6 +111,7 @@ def get_one_page_package_info(page_num: int, retry_times: int = 10, retry_interv
     :param retry_interval: The retry interval when the request failed.
     :return: The package information. If the request failed, return `None`.
     """
+    global api_key
     total_retry_times = retry_times
     while retry_times > 0:
         response = requests.get('https://libraries.io/api/search', params={
@@ -97,16 +120,17 @@ def get_one_page_package_info(page_num: int, retry_times: int = 10, retry_interv
             'languages': 'JavaScript',
             'per_page': 100,
             'page': page_num,
-            'api_key': 'a711409c801d5337ce4758cf94153601'
+            'api_key': api_key
         })
         if response.status_code != 200:
             common_logger.error(
                 f'Request failed with: {response.status_code}')
             retry_times -= 1
+            api_key = get_next_api_key()
             time.sleep(retry_interval * (total_retry_times - retry_times))
         else:
             break
-    return response.json()
+    return response.json() if response else None
 
 def export_package_info(package_info: list, day: date) -> None:
     """
@@ -147,7 +171,7 @@ if __name__ == '__main__':
         exit(-1)
     export_package_info(package_info, goal_day)
 
-    #Download packages
+    # Download packages
     piece_number = 8
     common_logger.info(
         f'Split requirements.txt file into {piece_number} pieces.')
